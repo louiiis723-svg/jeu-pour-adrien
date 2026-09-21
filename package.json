@@ -1,0 +1,17 @@
+{
+  "name": "voltra-industries",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Jeu de gestion coopératif en temps réel pour deux joueurs — usine de vélos électriques.",
+  "type": "module",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js"
+  },
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5"
+  }
+}

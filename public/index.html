@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Voltra Industries — jeu de gestion coopératif</title>
+<meta name="description" content="Dirigez à deux une usine de vélos électriques, en temps réel, chacun sur son écran.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0d10'/><path d='M8 21h6l3-9 3 9h4' stroke='%2322d3ee' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ════════════════ LOBBY ════════════════ -->
+<section id="lobby" class="lobby">
+  <div class="lobby-inner">
+    <header class="lobby-head">
+      <div class="brand">
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+          <path d="M6 22h6l4-12 4 12h6" fill="none" stroke="currentColor" stroke-width="2.6"
+                stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div>
+          <h1>Voltra Industries</h1>
+          <p>Usine de vélos électriques · direction bicéphale</p>
+        </div>
+      </div>
+    </header>
+
+    <div class="lobby-grid">
+      <!-- Colonne gauche : entrée en partie -->
+      <div class="card">
+        <h2>Prendre ses fonctions</h2>
+        <label class="field">
+          <span>Votre nom</span>
+          <input id="pseudo" type="text" maxlength="24" placeholder="Adrien" autocomplete="nickname">
+        </label>
+
+        <div id="roleChoice" class="role-choice">
+          <span class="field-label">Poste souhaité</span>
+          <div class="role-cards">
+            <button class="role-card is-amont selected" data-role="amont" type="button">
+              <span class="role-tag">J1</span>
+              <strong>Direction Industrielle</strong>
+              <small>Fournisseurs, ateliers de composants, machines, effectifs de production.</small>
+              <em>Vous seul voyez : stocks matières, usure, délais.</em>
+            </button>
+            <button class="role-card is-aval" data-role="aval" type="button">
+              <span class="role-tag">J2</span>
+              <strong>Direction Commerciale</strong>
+              <small>Assemblage, qualité, expédition, contrats clients, prix.</small>
+              <em>Vous seule voyez : demande, marges, réputation.</em>
+            </button>
+          </div>
+        </div>
+
+        <div class="lobby-actions">
+          <button id="btnCreate" class="btn btn-primary" type="button">Créer une partie</button>
+          <div class="join-row">
+            <input id="joinCode" type="text" maxlength="8" placeholder="CODE" autocomplete="off"
+                   spellcheck="false" aria-label="Code de partie">
+            <button id="btnJoin" class="btn" type="button">Rejoindre</button>
+          </div>
+        </div>
+        <p id="lobbyError" class="lobby-error" role="alert"></p>
+      </div>
+
+      <!-- Colonne droite : salon d'attente ou explication -->
+      <div class="card">
+        <div id="lobbyIntro">
+          <h2>Comment ça marche</h2>
+          <ol class="steps">
+            <li><strong>Un seul objectif, deux écrans.</strong> Vous dirigez la même entreprise, en temps réel. Un jour de jeu passe toutes les 2,5 secondes.</li>
+            <li><strong>Vous ne voyez pas la même chose.</strong> L'un connaît l'état des machines, l'autre la demande du marché. Aucun des deux ne peut décider seul correctement.</li>
+            <li><strong>Le tampon central vous relie.</strong> L'amont fabrique les composants, l'aval les assemble et les vend. S'il sature, l'amont se bloque ; s'il se vide, l'aval chôme.</li>
+            <li><strong>Les décisions engageantes se signent à deux.</strong> Contrats, emprunts, gros investissements : il faut l'accord des deux directions.</li>
+          </ol>
+          <p class="hint">Objectif : porter la valeur de l'entreprise à <strong>500 000 €</strong> en 60 jours, sans déposer le bilan.</p>
+        </div>
+
+        <div id="lobbyRoom" hidden>
+          <h2>Salon</h2>
+          <div class="code-block">
+            <span class="field-label">Code de partie</span>
+            <div class="code-value"><span id="roomCode">----</span>
+              <button id="btnCopy" class="btn btn-ghost" type="button">Copier le lien</button>
+            </div>
+          </div>
+          <div id="seats" class="seats"></div>
+          <button id="btnReady" class="btn btn-primary" type="button">Je suis prêt</button>
+          <p class="hint" id="readyHint">La partie démarre quand les deux directions sont prêtes.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════ JEU ════════════════ -->
+<main id="game" class="game" hidden>
+
+  <!-- Barre supérieure -->
+  <header class="hud">
+    <div class="hud-brand">
+      <svg class="brand-mark sm" viewBox="0 0 32 32" aria-hidden="true">
+        <path d="M6 22h6l4-12 4 12h6" fill="none" stroke="currentColor" stroke-width="2.6"
+              stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span id="hudRole" class="role-pill">—</span>
+    </div>
+
+    <div class="hud-stats">
+      <div class="stat">
+        <span class="stat-label">Jour</span>
+        <span class="stat-value"><b id="hudDay">1</b><i id="hudTotalDays">/60</i></span>
+        <div class="bar bar-thin"><i id="hudDayBar"></i></div>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Trésorerie</span>
+        <span class="stat-value num" id="hudCash">—</span>
+        <span class="stat-sub" id="hudCashFlow">—</span>
+      </div>
+      <div class="stat stat-wide">
+        <span class="stat-label">Valeur d'entreprise</span>
+        <span class="stat-value num" id="hudValue">—</span>
+        <div class="bar"><i id="hudValueBar"></i></div>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Stock vélos</span>
+        <span class="stat-value num" id="hudBikes">—</span>
+        <span class="stat-sub" id="hudPending">—</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Équipe</span>
+        <span class="stat-value num" id="hudMorale">—</span>
+        <span class="stat-sub" id="hudPartnerMorale">—</span>
+      </div>
+    </div>
+
+    <div class="hud-right">
+      <span id="hudPartner" class="peer">Partenaire —</span>
+      <button id="btnPause" class="btn btn-ghost" type="button">Pause</button>
+    </div>
+  </header>
+
+  <!-- Corps -->
+  <div class="layout">
+    <aside class="panel panel-left" id="panelLeft"></aside>
+
+    <section class="stage">
+      <canvas id="scene" aria-label="Vue isométrique du campus industriel"></canvas>
+      <div class="stage-overlay">
+        <div class="stage-legend">
+          <span class="legend-item"><i class="dot dot-amont"></i>Amont — Industrie</span>
+          <span class="legend-item"><i class="dot dot-aval"></i>Aval — Commerce</span>
+        </div>
+        <div class="stage-tools">
+          <button class="btn btn-ghost btn-sm" id="btnZoomOut" type="button" aria-label="Dézoomer">−</button>
+          <button class="btn btn-ghost btn-sm" id="btnZoomIn" type="button" aria-label="Zoomer">+</button>
+          <button class="btn btn-ghost btn-sm" id="btnRecenter" type="button">Recentrer</button>
+        </div>
+      </div>
+      <div id="inspector" class="inspector" hidden></div>
+    </section>
+
+    <aside class="panel panel-right">
+      <div class="buffer-card" id="bufferCard"></div>
+      <div class="feed-tabs">
+        <button class="tab selected" data-tab="log" type="button">Journal</button>
+        <button class="tab" data-tab="chat" type="button">Échanges<span id="chatBadge" class="badge" hidden></span></button>
+      </div>
+      <div id="logPane" class="feed"></div>
+      <div id="chatPane" class="feed" hidden></div>
+      <form id="chatForm" class="chat-form" hidden>
+        <input id="chatInput" type="text" maxlength="280" placeholder="Message à votre partenaire…" autocomplete="off">
+        <button class="btn btn-sm" type="submit">Envoyer</button>
+      </form>
+      <div id="sharePane" class="share-pane"></div>
+    </aside>
+  </div>
+
+  <!-- Surcouches -->
+  <div id="proposals" class="proposals"></div>
+  <div id="crisis" class="crisis-backdrop" hidden></div>
+  <div id="gameOver" class="over-backdrop" hidden></div>
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+</main>
+
+<script src="/socket.io/socket.io.js"></script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
