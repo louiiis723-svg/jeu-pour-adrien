@@ -43,7 +43,12 @@ export const SOCKET_PATH = '/api/server/socket.io';
 
 const app = express();
 app.use(express.static(path.join(__dirname, '..', 'public'), { extensions: ['html'] }));
-app.get('/api/health', (_req, res) => res.json({ ok: true, rooms: rooms.roomCount() }));
+// Deux chemins pour la même sonde : en local l'application répond sur tout
+// le domaine, alors que sur Vercel seule la route /api/server/* atteint cette
+// fonction — le reste est servi en statique par le CDN.
+const health = (_req, res) => res.json({ ok: true, rooms: rooms.roomCount() });
+app.get('/api/health', health);
+app.get('/api/server/health', health);
 
 const server = createServer(app);
 const io = new Server(server, {
