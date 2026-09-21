@@ -3,9 +3,22 @@
  * en promesse, et centraliser la gestion de la reconnexion.
  */
 
+/**
+ * Chemin du point d'entrée Socket.IO — doit correspondre exactement à
+ * SOCKET_PATH dans server/app.js. Sur Vercel, la fonction déployée depuis
+ * `api/server.js` est servie sous `/api/server`, et Socket.IO ajoute
+ * `/socket.io` derrière. On utilise le même chemin en local pour que le code
+ * client soit identique dans les deux environnements.
+ */
+export const SOCKET_PATH = '/api/server/socket.io';
+
 export function createNet() {
   /* global io */
-  const socket = io({ transports: ['websocket', 'polling'] });
+  const socket = io({
+    path: SOCKET_PATH,
+    // Vercel ne prend pas en charge le long-polling pour Socket.IO.
+    transports: ['websocket'],
+  });
 
   return {
     socket,
